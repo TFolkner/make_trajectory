@@ -3,8 +3,8 @@ clc;
 
 
 %% Начальная и конечная точка на сфере Земли в ГСК
-m0 = [55.7500, 37.6167]; % МСК
-m1 = [59.9500, 30.3167];% СПБ
+m0 = [45.0, 90.0];
+m1 = [0.0, 0.0];
 
 m0 = deg2rad(m0);
 m1 = deg2rad(m1);
@@ -35,12 +35,33 @@ e0_ = M_IE * e0;
 e1_ = M_IE * e1;
 
 
+% Угол поворота
+alpha = acos (dot(e0_, e1_) / (norm(e0_) * norm(e1_)));
+e_c = cross(e0_, e1_) /(norm(e0_) * norm(e1_));
+
+
+% поворот на половину
+C = [0, -e_c(3), e_c(2);
+     e_c(3), 0, -e_c(1);
+     -e_c(2), e_c(1), 0];
+E = eye(3);
+
+H = 0.1;
+beta = 0:H:alpha;
+e_m = zeros (length(beta), 3);
+for i = 1:length(beta)
+    A = E * cos(beta(i)) + (1 - cos(beta(i))) * (e_c * e_c') - C * sin(beta(i));
+    e_m(i, :) = A' * e0_;
+end
+
+
+
 
 %% PLOTS
 % для картинок
 monitor = 2;
 sz = get (0, 'MonitorPositions');
-pic_size = [0 0 1000, 500];
+pic_size = [0 0 2000, 1000];
 pics_path = "../pics/";
 save_graf_trigger = 0;
 LW = 1.5;
@@ -53,9 +74,13 @@ surf(R_earth*x, R_earth*y, R_earth*z, 'facecolor','#404040', 'facealpha',.7);
 grid on;
 axis equal
 hold on; 
-plot3 (e0(1), e0(2), e0(3), '*g', 'linewidth',LW);
+plot3 ([0, e0_(1)], [0, e0_(2)], [0, e0_(3)], '-*g', 'linewidth',LW);
 hold on
-plot3 (e1(1), e1(2), e1(3), '*b', 'linewidth',LW);
-view (50, 0);
+plot3 ([0, e1_(1)], [0, e1_(2)], [0, e1_(3)], '-*b', 'linewidth',LW);
+plot3 ([0, e_c(1)], [0, e_c(2)], [0, e_c(3)], '-*r', 'linewidth',LW);
+
+view (90, 0);
 title ('(а)')
+
+plot3 (e_m(:, 1), e_m(:, 2), e_m(:, 3), '*y', 'linewidth',LW);
 
