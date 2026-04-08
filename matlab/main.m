@@ -57,18 +57,14 @@ T = L / initial_data.W;
 wc = initial_data.W / (const_values.R_earth + initial_data.h);
 
 % Шаг времени
-dt = 1 / initial_data.Hz;
-
-% Общаяя длинна вектора
-Ln = int64(T / dt);
-
+dt = 0:(1 / initial_data.Hz):T;
 
 C = [0,      -e_c(3),  e_c(2);
      e_c(3),  0,       -e_c(1);
      -e_c(2), e_c(1),  0];
 
 % Определяем шаг угловой скорости вращения
-step_beta = wc * dt;
+step_beta = wc * (1 / initial_data.Hz);
 
 % Создаём итоговые массивы выходных данных
 output_data.r_m_gisk = zeros (length(0:step_beta:alpha), 3);
@@ -79,28 +75,39 @@ output_data.v_m_isk = zeros (length(0:step_beta:alpha), 3);
 % Матрица поворота с учётом углового шага
 A = (eye(3) * cos(step_beta)) + ((1 - cos(step_beta))*(e_c * e_c')) - (C * sin(step_beta));
 
-% Матрица пересчёта ГИСК -> ИСК
-M_IE = [+cos(const_values.W_earth * dt), -sin(const_values.W_earth * dt), 0;
-        +sin(const_values.W_earth * dt), +cos(const_values.W_earth * dt), 0;
-        0, 0, 1];
+% Перевод начальной и конечной точки в ИСК
+initial_data.e0_isk =[+cos(const_values.W_earth * 0), -sin(const_values.W_earth * 0), 0;
+                      +sin(const_values.W_earth * 0), +cos(const_values.W_earth * 0), 0;
+                      0, 0, 1] * initial_data.e0;
+
+initial_data.e1_isk =[+cos(const_values.W_earth * T), -sin(const_values.W_earth * T), 0;
+                      +sin(const_values.W_earth * T), +cos(const_values.W_earth * T), 0;
+                      0, 0, 1] * initial_data.e1;
 
 %% main cycle
 
-
+% % Матрица пересчёта ГИСК -> ИСК
+% M_IE = [+cos(const_values.W_earth * dt), -sin(const_values.W_earth * dt), 0;
+%         +sin(const_values.W_earth * dt), +cos(const_values.W_earth * dt), 0;
+%         0, 0, 1];
 
 
 for count = 1:length(output_data.r_m_gisk)
 
     if (count == 1)
         output_data.r_m_gisk(count, :) =  initial_data.e0';
-        output_data.r_m_isk(count, :) = M_IE * output_data.r_m_gisk(count, :)';
+        output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
+                                         +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
+                                         0, 0, 1] * output_data.r_m_gisk(count, :)';
 
         % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
     else
         output_data.r_m_gisk(count, :) = A' * output_data.r_m_gisk(count-1, :)';
-        output_data.r_m_isk(count, :) = M_IE * output_data.r_m_gisk(count, :)';
+        output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
+                                         +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
+                                         0, 0, 1] * output_data.r_m_gisk(count, :)';
 
         % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
@@ -137,6 +144,8 @@ LW = 2;
 
 % Траектория полёта ЛА
 F0 = figure ('Position', pic_size);
+
+subplot (1, 2, 1) % --------------------------------------------- ГИСК
 [x,y,z] = sphere;
 axis equal
 surf(const_values.R_earth * x, ...
@@ -145,24 +154,25 @@ surf(const_values.R_earth * x, ...
      'facecolor','#404040', 'facealpha',.5); 
 grid on;
 axis equal
-hold on; 
+hold on;
+
 % вектор начала маршрута
 plot3 ([0, initial_data.e0(1)], ...
        [0, initial_data.e0(2)], ...
        [0, initial_data.e0(3)], ...
        '-*g', 'linewidth',LW);
-hold on
+
 % вектор конца маршрута
 plot3 ([0, initial_data.e1(1)], ...
        [0, initial_data.e1(2)], ...
        [0, initial_data.e1(3)], ...
        '-*b', 'linewidth',LW);
 
-% нормаль вращения
-plot3 ([0, const_values.R_earth * e_c(1)], ...
-       [0, const_values.R_earth * e_c(2)], ...
-       [0, const_values.R_earth * e_c(3)], ...
-       '-*r', 'linewidth',LW);
+% % нормаль вращения
+% plot3 ([0, const_values.R_earth * e_c(1)], ...
+%        [0, const_values.R_earth * e_c(2)], ...
+%        [0, const_values.R_earth * e_c(3)], ...
+%        '-*r', 'linewidth',LW);
 
 % Траектория движения ГИСК
 plot3 (output_data.r_m_gisk(:, 1), ...
@@ -170,17 +180,39 @@ plot3 (output_data.r_m_gisk(:, 1), ...
        output_data.r_m_gisk(:, 3), ...
        '-r', 'linewidth',LW);
 
-% % Траектория движения ИСК
-% plot3 (output_data.r_m_isk(:, 1), ...
-%        output_data.r_m_isk(:, 2), ...
-%        output_data.r_m_isk(:, 3), ...
-%        '-y', 'linewidth',LW);
+title ('Траектория движения в ГИСК')
+legend ("E", "Мск", "Бангкок", "маршрут");
 
+subplot (1, 2, 2) % --------------------------------------------- ИСК
+axis equal
+surf(const_values.R_earth * x, ...
+     const_values.R_earth * y, ...
+     const_values.R_earth * z, ...
+     'facecolor','#404040', 'facealpha',.5); 
+grid on;
+axis equal
+hold on;
 
-view (90, 0);
-title ('(а)')
+% вектор начала маршрута в ИСК
+plot3 ([0, output_data.r_m_isk(1, 1)], ...
+       [0, output_data.r_m_isk(1, 2)], ...
+       [0, output_data.r_m_isk(1, 3)], ...
+       '-gs', 'linewidth',LW);
 
-legend ("E", "Мск", "Бангкок", "Нормаль", "маршрут");
+% вектор конца маршрута в ИСК
+plot3 ([0, output_data.r_m_isk(end, 1)], ...
+       [0, output_data.r_m_isk(end, 2)], ...
+       [0, output_data.r_m_isk(end, 3)], ...
+       '-*b', 'linewidth',LW);
+
+% Траектория движения ИСК
+plot3 (output_data.r_m_isk(:, 1), ...
+       output_data.r_m_isk(:, 2), ...
+       output_data.r_m_isk(:, 3), ...
+       '-r', 'linewidth',LW);
+
+title ('Траектория движения в ИСК')
+legend ("E", "Мск", "Бангкок", "маршрут");
 
 
 
