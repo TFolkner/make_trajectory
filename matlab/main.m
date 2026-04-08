@@ -10,47 +10,42 @@ initial_data.m0 = [55.7558, 37.6173]; % МСК
 initial_data.m1 = [13.7563, 100.5018]; % Бангкок
 initial_data.W = 250; % Модуль вектора путевой скорости [м/с ]
 initial_data.t = 60 * 60; % Время в движении [sec]
-initial_data.h = 0.1; % высота движения
+initial_data.h = 1000000; % высота движения
 initial_data.Hz = 10; % Герцовка записи данных
 
 const_values = struct; % Структура константных значений
 const_values.W_earth = 7.2921159e-5; % [1/sec]
 const_values.R_earth = 6371000; % R Земли [m]
 
-
 output_data = struct; % Структура выходных (итоговых данных)
 
 
 
-dt = 1;
-M_IE = [+cos(const_values.W_earth * dt), -sin(const_values.W_earth * dt), 0;
-        +sin(const_values.W_earth * dt), +cos(const_values.W_earth * dt), 0;
-        0, 0, 1];
-
-
-
-
-
-
-
-%% main cycle
-
+%% Подготовка дополнительных данных =======================================
+% Градусы в радианы
 initial_data.m0 = deg2rad(initial_data.m0);
 initial_data.m1 = deg2rad(initial_data.m1);
 
-% Орты нормалей в ГСК
-e0 = [cos(initial_data.m0(1)) * cos(initial_data.m0(2));
-      cos(initial_data.m0(1)) * sin(initial_data.m0(2));
-      sin(initial_data.m0(1))];
+% переводим широты и долготы в декартовы координаты
+initial_data.e0 = ...
+    (const_values.R_earth +initial_data.h) * [cos(initial_data.m0(1)) * cos(initial_data.m0(2));
+                                              cos(initial_data.m0(1)) * sin(initial_data.m0(2));
+                                              sin(initial_data.m0(1))];
 
 
-e1 = [cos(initial_data.m1(1)) * cos(initial_data.m1(2));
-      cos(initial_data.m1(1)) * sin(initial_data.m1(2));
-      sin(initial_data.m1(1))];
+initial_data.e1 = ...
+    (const_values.R_earth +initial_data.h) * [cos(initial_data.m1(1)) * cos(initial_data.m1(2));
+                                              cos(initial_data.m1(1)) * sin(initial_data.m1(2));
+                                              sin(initial_data.m1(1))];
+
 
 % Угол поворота
-alpha = acos (dot(e0, e1) / (norm(e0) * norm(e1)));
-e_c = cross(e0, e1); e_c = e_c / norm(e_c);
+alpha = acos (dot(initial_data.e0, initial_data.e1) / ...
+    (norm(initial_data.e0) * norm(initial_data.e1)));
+
+% вектор поворота
+e_c = cross(initial_data.e0, initial_data.e1); e_c = e_c / norm(e_c);
+e_c = e_c;
 
 % Длина маршрута:
 L = (const_values.R_earth + initial_data.h) * alpha;
@@ -67,26 +62,53 @@ dt = 1 / initial_data.Hz;
 % Общаяя длинна вектора
 Ln = int64(T / dt);
 
-% поворот 
+
 C = [0,      -e_c(3),  e_c(2);
      e_c(3),  0,       -e_c(1);
      -e_c(2), e_c(1),  0];
 
-
+% Определяем шаг угловой скорости вращения
 step_beta = wc * dt;
-e_m = zeros (length(0:step_beta:alpha), 3);
-w_m = zeros (length(0:step_beta:alpha), 3);
 
+% Создаём итоговые массивы выходных данных
+output_data.r_m_gisk = zeros (length(0:step_beta:alpha), 3);
+output_data.r_m_isk = zeros (length(0:step_beta:alpha), 3);
+output_data.v_m_gisk = zeros (length(0:step_beta:alpha), 3);
+output_data.v_m_isk = zeros (length(0:step_beta:alpha), 3);
+
+% Матрица поворота с учётом углового шага
 A = (eye(3) * cos(step_beta)) + ((1 - cos(step_beta))*(e_c * e_c')) - (C * sin(step_beta));
 
-e_m(1, :) = e0;
-for i = 2:length(e_m)
-    e_m(i, :) = A' * e_m(i-1, :)';
+% Матрица пересчёта ГИСК -> ИСК
+M_IE = [+cos(const_values.W_earth * dt), -sin(const_values.W_earth * dt), 0;
+        +sin(const_values.W_earth * dt), +cos(const_values.W_earth * dt), 0;
+        0, 0, 1];
 
-    w_m(i, :) = cross(e_c, e_m(i, :)); 
-    w_m(i, :) = w_m(i, :) / norm (w_m(i, :));
-    w_m(i, :) = w_m(i, :) * initial_data.W;
+%% main cycle
+
+
+
+
+for count = 1:length(output_data.r_m_gisk)
+
+    if (count == 1)
+        output_data.r_m_gisk(count, :) =  initial_data.e0';
+        output_data.r_m_isk(count, :) = M_IE * output_data.r_m_gisk(count, :)';
+
+        % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
+        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
+        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
+    else
+        output_data.r_m_gisk(count, :) = A' * output_data.r_m_gisk(count-1, :)';
+        output_data.r_m_isk(count, :) = M_IE * output_data.r_m_gisk(count, :)';
+
+        % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
+        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
+        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
+    end
+
 end
+
 
 
 
@@ -113,24 +135,54 @@ pics_path = "../pics/";
 save_graf_trigger = 0;
 LW = 2;
 
-% Траектория полёта КА
+% Траектория полёта ЛА
 F0 = figure ('Position', pic_size);
 [x,y,z] = sphere;
 axis equal
-surf(x, y, z, 'facecolor','#404040', 'facealpha',.5); 
+surf(const_values.R_earth * x, ...
+     const_values.R_earth * y, ...
+     const_values.R_earth * z, ...
+     'facecolor','#404040', 'facealpha',.5); 
 grid on;
 axis equal
 hold on; 
-plot3 ([0, e0(1)], [0, e0(2)], [0, e0(3)], '-*g', 'linewidth',LW);
+% вектор начала маршрута
+plot3 ([0, initial_data.e0(1)], ...
+       [0, initial_data.e0(2)], ...
+       [0, initial_data.e0(3)], ...
+       '-*g', 'linewidth',LW);
 hold on
-plot3 ([0, e1(1)], [0, e1(2)], [0, e1(3)], '-*b', 'linewidth',LW);
-plot3 ([0, e_c(1)], [0, e_c(2)], [0, e_c(3)], '-*r', 'linewidth',LW);
+% вектор конца маршрута
+plot3 ([0, initial_data.e1(1)], ...
+       [0, initial_data.e1(2)], ...
+       [0, initial_data.e1(3)], ...
+       '-*b', 'linewidth',LW);
+
+% нормаль вращения
+plot3 ([0, const_values.R_earth * e_c(1)], ...
+       [0, const_values.R_earth * e_c(2)], ...
+       [0, const_values.R_earth * e_c(3)], ...
+       '-*r', 'linewidth',LW);
+
+% Траектория движения ГИСК
+plot3 (output_data.r_m_gisk(:, 1), ...
+       output_data.r_m_gisk(:, 2), ...
+       output_data.r_m_gisk(:, 3), ...
+       '-r', 'linewidth',LW);
+
+% % Траектория движения ИСК
+% plot3 (output_data.r_m_isk(:, 1), ...
+%        output_data.r_m_isk(:, 2), ...
+%        output_data.r_m_isk(:, 3), ...
+%        '-y', 'linewidth',LW);
+
 
 view (90, 0);
 title ('(а)')
 
-% plot3 ([0, e_m(1)], [0, e_m(2)], [0, e_m(3)], '-*y', 'linewidth',LW);
-plot3 (e_m(:, 1), e_m(:, 2), e_m(:, 3), '-r', 'linewidth',LW);
+legend ("E", "Мск", "Бангкок", "Нормаль", "маршрут");
 
 
-legend ("E", "Мск", "Лондон", "Нормаль", "маршрут");
+
+clear A C dt e_c L Ln T wc LW monitor M_IE x y z sz alpha
+clear step_beta save_graf_trigger pics_path pic_size F0 count
