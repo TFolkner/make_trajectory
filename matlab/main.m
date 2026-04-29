@@ -1,24 +1,38 @@
 clear;
 clc;
 
+fprintf ("I.M.Markov - \n");
+fprintf ("Primitive orthodromy realization\n");
+fprintf ("==================================\n");
+
 
 %% Блок начальных условий =================================================
 
-initial_data = struct;   % Структура начальных условий
-initial_data.m0 = [55.7558, 37.6173]; % МСК
-% initial_data.m1 = [51.1, 0.12];% Лондон
-initial_data.m1 = [13.7563, 100.5018]; % Бангкок
-initial_data.W = 250; % Модуль вектора путевой скорости [м/с ]
-initial_data.t = 60 * 60; % Время в движении [sec]
-initial_data.h = 1000000; % высота движения
-initial_data.Hz = 10; % Герцовка записи данных
+try
+    % Инит данные для моделирования
+    initial_data = struct;   % Структура начальных условий
+    initial_data.m0 = [55.7558, 37.6173]; % МСК
+    % initial_data.m1 = [51.1, 0.12];% Лондон
+    initial_data.m1 = [13.7563, 100.5018]; % Бангкок
+    initial_data.W = 250; % Модуль вектора путевой скорости [м/с ]
+    initial_data.t = 60 * 60; % Время в движении [sec]
+    initial_data.h = 1000000; % высота движения
+    initial_data.Hz = 10; % Герцовка записи данных
+    
+    const_values = struct; % Структура константных значений
+    const_values.W_earth = 7.2921159e-5; % [1/sec]
+    const_values.R_earth = 6371000; % R Земли [m]
+    
+    output_data = struct; % Структура выходных (итоговых данных)
+    
+    MACROS = struct;
+    MACROS.plot = 1;
+    MACROS.save_grafs = 1;
 
-const_values = struct; % Структура константных значений
-const_values.W_earth = 7.2921159e-5; % [1/sec]
-const_values.R_earth = 6371000; % R Земли [m]
-
-output_data = struct; % Структура выходных (итоговых данных)
-
+    fprintf ("[INFO] == data initial success\n");
+catch exception
+    fprintf ("[ERROR] == error with data initialization -> %s\n", exception.message);
+end
 
 
 %% Подготовка дополнительных данных =======================================
@@ -135,85 +149,96 @@ fprintf ("             - %.4f [h]\n", T/3600);
 
 %% PLOTS
 % для картинок
-monitor = 2;
 sz = get (0, 'MonitorPositions');
-pic_size = [0 0 1000, 1000];
-pics_path = "../pics/";
-save_graf_trigger = 0;
+pic_size = [0 0 1000, 500];
+pics_path = "pics/";
 LW = 2;
 
-% Траектория полёта ЛА
-F0 = figure ('Position', pic_size);
 
-subplot (1, 2, 1) % --------------------------------------------- ГИСК
-[x,y,z] = sphere;
-axis equal
-surf(const_values.R_earth * x, ...
-     const_values.R_earth * y, ...
-     const_values.R_earth * z, ...
-     'facecolor','#404040', 'facealpha',.5); 
-grid on;
-axis equal
-hold on;
+if (MACROS.plot == 1)
+    % Траектория полёта ЛА
+    try
+        Figure_trajectory = figure ('Position', pic_size);
+        
+        subplot (1, 2, 1) % --------------------------------------------- ГИСК
+        [x,y,z] = sphere;
+        axis equal
+        surf(const_values.R_earth * x, ...
+             const_values.R_earth * y, ...
+             const_values.R_earth * z, ...
+             'facecolor','#404040', 'facealpha',.5); 
+        grid on;
+        axis equal
+        hold on;
+        
+        % вектор начала маршрута
+        plot3 ([0, initial_data.e0(1)], ...
+               [0, initial_data.e0(2)], ...
+               [0, initial_data.e0(3)], ...
+               '-*g', 'linewidth',LW);
+        
+        % вектор конца маршрута
+        plot3 ([0, initial_data.e1(1)], ...
+               [0, initial_data.e1(2)], ...
+               [0, initial_data.e1(3)], ...
+               '-*b', 'linewidth',LW);
+        
+        % % нормаль вращения
+        % plot3 ([0, const_values.R_earth * e_c(1)], ...
+        %        [0, const_values.R_earth * e_c(2)], ...
+        %        [0, const_values.R_earth * e_c(3)], ...
+        %        '-*r', 'linewidth',LW);
+        
+        % Траектория движения ГИСК
+        plot3 (output_data.r_m_gisk(:, 1), ...
+               output_data.r_m_gisk(:, 2), ...
+               output_data.r_m_gisk(:, 3), ...
+               '-r', 'linewidth',LW);
+        
+        title ('Траектория движения в ГИСК')
+        legend ("E", "Мск", "Бангкок", "маршрут");
+        
+        subplot (1, 2, 2) % --------------------------------------------- ИСК
+        axis equal
+        surf(const_values.R_earth * x, ...
+             const_values.R_earth * y, ...
+             const_values.R_earth * z, ...
+             'facecolor','#404040', 'facealpha',.5); 
+        grid on;
+        axis equal
+        hold on;
+        
+        % вектор начала маршрута в ИСК
+        plot3 ([0, output_data.r_m_isk(1, 1)], ...
+               [0, output_data.r_m_isk(1, 2)], ...
+               [0, output_data.r_m_isk(1, 3)], ...
+               '-gs', 'linewidth',LW);
+        
+        % вектор конца маршрута в ИСК
+        plot3 ([0, output_data.r_m_isk(end, 1)], ...
+               [0, output_data.r_m_isk(end, 2)], ...
+               [0, output_data.r_m_isk(end, 3)], ...
+               '-*b', 'linewidth',LW);
+        
+        % Траектория движения ИСК
+        plot3 (output_data.r_m_isk(:, 1), ...
+               output_data.r_m_isk(:, 2), ...
+               output_data.r_m_isk(:, 3), ...
+               '-r', 'linewidth',LW);
+        
+        title ('Траектория движения в ИСК')
+        legend ("E", "Мск", "Бангкок", "маршрут");
+    
+        if (MACROS.save_grafs == 1)
+            exportgraphics (Figure_trajectory, pics_path+"trajectory.png");
+            close (Figure_trajectory);
+        end
 
-% вектор начала маршрута
-plot3 ([0, initial_data.e0(1)], ...
-       [0, initial_data.e0(2)], ...
-       [0, initial_data.e0(3)], ...
-       '-*g', 'linewidth',LW);
-
-% вектор конца маршрута
-plot3 ([0, initial_data.e1(1)], ...
-       [0, initial_data.e1(2)], ...
-       [0, initial_data.e1(3)], ...
-       '-*b', 'linewidth',LW);
-
-% % нормаль вращения
-% plot3 ([0, const_values.R_earth * e_c(1)], ...
-%        [0, const_values.R_earth * e_c(2)], ...
-%        [0, const_values.R_earth * e_c(3)], ...
-%        '-*r', 'linewidth',LW);
-
-% Траектория движения ГИСК
-plot3 (output_data.r_m_gisk(:, 1), ...
-       output_data.r_m_gisk(:, 2), ...
-       output_data.r_m_gisk(:, 3), ...
-       '-r', 'linewidth',LW);
-
-title ('Траектория движения в ГИСК')
-legend ("E", "Мск", "Бангкок", "маршрут");
-
-subplot (1, 2, 2) % --------------------------------------------- ИСК
-axis equal
-surf(const_values.R_earth * x, ...
-     const_values.R_earth * y, ...
-     const_values.R_earth * z, ...
-     'facecolor','#404040', 'facealpha',.5); 
-grid on;
-axis equal
-hold on;
-
-% вектор начала маршрута в ИСК
-plot3 ([0, output_data.r_m_isk(1, 1)], ...
-       [0, output_data.r_m_isk(1, 2)], ...
-       [0, output_data.r_m_isk(1, 3)], ...
-       '-gs', 'linewidth',LW);
-
-% вектор конца маршрута в ИСК
-plot3 ([0, output_data.r_m_isk(end, 1)], ...
-       [0, output_data.r_m_isk(end, 2)], ...
-       [0, output_data.r_m_isk(end, 3)], ...
-       '-*b', 'linewidth',LW);
-
-% Траектория движения ИСК
-plot3 (output_data.r_m_isk(:, 1), ...
-       output_data.r_m_isk(:, 2), ...
-       output_data.r_m_isk(:, 3), ...
-       '-r', 'linewidth',LW);
-
-title ('Траектория движения в ИСК')
-legend ("E", "Мск", "Бангкок", "маршрут");
-
+        fprintf ("[INFO] == Figure_trajectory plot and save\n");
+    catch exception
+        fprintf ("[ERROR] == error with Figure_trajectory -> %s\n", exception.message);
+    end
+end
 
 
 clear A C dt e_c L Ln T wc LW monitor M_IE x y z sz alpha
