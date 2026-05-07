@@ -3,9 +3,10 @@
 #include <fstream>
 #include <math.h>
 
+#include "../heads/init_data.h"
+
 // constatn values
-#define sFile_init = "../initial_data/init.ini"
-#define file_name_size 128
+
 
 
 // int
@@ -22,12 +23,11 @@
 #ifndef heads
 	extern
 #endif
-	char sFile_file_1 [file_name_size]
+	char sFile_file_1 [128]
 	;
 
 
 // func protos
-int read_init_data();
 int dispatcher();
 
 

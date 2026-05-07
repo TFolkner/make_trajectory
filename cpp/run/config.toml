@@ -1,0 +1,22 @@
+# Configuration data -------
+author = "I.M. Markov"
+project_name = "Make Trajectory"
+version = "0.01"
+
+name_start = "MSK"
+phi_start = 55.7558
+lambda_start = 37.6173
+name_end = "BKG"
+phi_end = 13.7563
+lambda_end = 100.5018
+
+W = 250 # linear speed [m/s]
+t = 3600 # travel time [s]
+h = 1000000 # travel height [m]
+Hz = 10 # model frequency
+
+# consts
+W_Earth = 7.2921159e-5 # Earth angular spead [1/sec]
+R_Earth = 6371000 # Earth radius [m]
+
+

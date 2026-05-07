@@ -5,15 +5,21 @@
 #include "../heads/dispatcher.h"
 
 
-#define heads
 
 
 
 
 int main() {
-	printf ("   project name     \n");
-	printf ("   Markov I.M.      \n");
-	printf ("   proj version     \n");
+	switch (dispatcher()) {
+	case 0:
+		break;
+
+	case 1:
+		break;
+
+	default:
+		break;
+	}
 
 	system ("pause");
 	return 0;
