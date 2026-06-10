@@ -16,13 +16,6 @@
 
 #define init_file_name_ "config.cfg"
 
-// ошибки и статусы
-enum cfg_read_states {
-	// ошибки
-	dont_opend_file,
-	// статусы
-	cfg_read_success
-};
 
 class init_data {
 private:
@@ -54,25 +47,25 @@ public:
 
 
 	// getters
-	std::string& get_author();
-	std::string& get_project_name();
-	std::string& get_version();
+	const std::string& get_author();
+	const std::string& get_project_name();
+	const std::string& get_version();
 
-	std::string& get_name_start();
-	double& get_phi_start();
-	double& get_lambda_start();
+	const std::string& get_name_start();
+	const double& get_phi_start();
+	const double& get_lambda_start();
 
-	std::string& get_name_end();
-	double& get_phi_end();
-	double& get_lambda_end();
+	const std::string& get_name_end();
+	const double& get_phi_end();
+	const double& get_lambda_end();
 
-	double& get_W();
-	double& get_t();
-	double& get_h();
-	double& get_Hz();
+	const double& get_W();
+	const double& get_t();
+	const double& get_h();
+	const double& get_Hz();
 
-	double& get_W_Earth();
-	double& get_R_Earth();
+	const double& get_W_Earth();
+	const double& get_R_Earth();
 
 };
 

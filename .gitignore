@@ -1,3 +1,7 @@
 /cpp/proj
 /matlab/matrix.txt
 /matlab/pics
+/.vscode
+/cpp/libs/eigen-master
+/cpp/libs/toml11-main
+/cpp/libs/tomlplusplus-master

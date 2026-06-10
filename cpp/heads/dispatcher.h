@@ -5,30 +5,20 @@
 
 #include "../heads/init_data.h"
 
-// constatn values
 
 
 
-// int
-#ifndef heads
-	extern
-#endif
-	int 
-	init_disp
-	;
+class main_dispatcher {
+private:
 
-
-
-// char
-#ifndef heads
-	extern
-#endif
-	char sFile_file_1 [128]
-	;
-
-
-// func protos
-int dispatcher();
+public:
+	int operator()() {
+		init_data init{};
+		init.make_header();
+		init.disp_config();
+		return 0;
+	}
+};
 
 
 

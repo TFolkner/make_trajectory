@@ -2,21 +2,21 @@
 
 
 // getters ==========================================================
-std::string& init_data::get_author() { return author; }
-std::string& init_data::get_project_name() { return project_name; }
-std::string& init_data::get_version() { return version; }
-std::string& init_data::get_name_start() { return name_start; }
-double& init_data::get_phi_start() { return phi_start; }
-double& init_data::get_lambda_start() { return lambda_start; }
-std::string& init_data::get_name_end() { return name_end; }
-double& init_data::get_phi_end() { return phi_end; }
-double& init_data::get_lambda_end() { return lambda_end; }
-double& init_data::get_W() { return W; }
-double& init_data::get_t() { return t; }
-double& init_data::get_h() { return h; }
-double& init_data::get_Hz() { return Hz; }
-double& init_data::get_W_Earth() { return W_Earth; }
-double& init_data::get_R_Earth() { return R_Earth; }
+const std::string& init_data::get_author() { return author; }
+const std::string& init_data::get_project_name() { return project_name; }
+const std::string& init_data::get_version() { return version; }
+const std::string& init_data::get_name_start() { return name_start; }
+const double& init_data::get_phi_start() { return phi_start; }
+const double& init_data::get_lambda_start() { return lambda_start; }
+const std::string& init_data::get_name_end() { return name_end; }
+const double& init_data::get_phi_end() { return phi_end; }
+const double& init_data::get_lambda_end() { return lambda_end; }
+const double& init_data::get_W() { return W; }
+const double& init_data::get_t() { return t; }
+const double& init_data::get_h() { return h; }
+const double& init_data::get_Hz() { return Hz; }
+const double& init_data::get_W_Earth() { return W_Earth; }
+const double& init_data::get_R_Earth() { return R_Earth; }
 
 init_data::init_data() {
 	try {
@@ -62,12 +62,12 @@ int init_data::disp_config() {
 	std::cout << "==========================" << std::endl;
 	std::cout << "Start -> " << "\"" << get_name_start() << "\"" << " " << get_phi_start() << ", " << get_lambda_start() << std::endl;
 	std::cout << "End -> " << "\"" << get_name_end() << "\"" << " " << get_phi_end() << ", " << get_lambda_end() << std::endl;
-	std::cout << W << std::endl;
-	std::cout << t << std::endl;
-	std::cout << h << std::endl;
-	std::cout << Hz << std::endl;
-	std::cout << W_Earth << std::endl;
-	std::cout << R_Earth << std::endl;
+	std::cout << "Linear speed -> " << W << std::endl;
+	std::cout << "Travel time -> " << t << std::endl;
+	std::cout << "Travel height -> " << h << std::endl;
+	std::cout << "Model frequency -> " << Hz << std::endl;
+	std::cout << "Earth angular speed -> " << W_Earth << std::endl;
+	std::cout << "Earth radius -> " << R_Earth << std::endl;
 	std::cout << std::endl;
 	return 0;
 }
