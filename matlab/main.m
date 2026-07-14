@@ -60,7 +60,16 @@ alpha = atan2( norm(cross(initial_data.e0,initial_data.e1)), ...
                         dot(initial_data.e0,initial_data.e1) );
 
 % вектор поворота
-e_c = cross(initial_data.e0, initial_data.e1); e_c = e_c / norm(e_c);
+e_c_ = cross(initial_data.e0, initial_data.e1);
+if e_c_  < 1e-9 * norm(initial_data.e0)^2 % проверка единственности ортодромии
+    if dot(initial_data.e0, initial_data.e1) > 0
+        error('Начальная и конечная точки совпадают — маршрут вырожден.');
+    else
+        error('Точки антиподальны — ортодромия не единственна, задайте промежуточную точку.');
+    end
+end
+fprintf ("[INFO] == Маршрут существует\n");
+e_c = e_c_ / norm(e_c_);
 
 % Длина маршрута:
 L = (const_values.R_earth + initial_data.h) * alpha;
