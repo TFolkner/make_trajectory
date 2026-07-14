@@ -61,7 +61,7 @@ alpha = atan2( norm(cross(initial_data.e0,initial_data.e1)), ...
 
 % вектор поворота
 e_c_ = cross(initial_data.e0, initial_data.e1);
-if e_c_  < 1e-9 * norm(initial_data.e0)^2 % проверка единственности ортодромии
+if norm(e_c_) < 1e-9 * norm(initial_data.e0)^2 % проверка единственности ортодромии
     if dot(initial_data.e0, initial_data.e1) > 0
         error('Начальная и конечная точки совпадают — маршрут вырожден.');
     else
@@ -81,23 +81,23 @@ T = L / initial_data.W;
 wc = initial_data.W / (const_values.R_earth + initial_data.h);
 
 % Шаг времени
-dt = 0:(1 / initial_data.Hz):T;
+dt = [0:(1/initial_data.Hz):T, T];
+dt = unique(dt);
 
 C = [0,      -e_c(3),  e_c(2);
      e_c(3),  0,       -e_c(1);
      -e_c(2), e_c(1),  0];
 
 % Определяем шаг угловой скорости вращения
-step_beta = wc * (1 / initial_data.Hz);
+beta = wc * dt;
+N    = length(dt);
 
 % Создаём итоговые массивы выходных данных
-output_data.r_m_gsk = zeros (length(0:step_beta:alpha), 3);
-output_data.r_m_isk = zeros (length(0:step_beta:alpha), 3);
-output_data.v_m_gsk = zeros (length(0:step_beta:alpha), 3);
-output_data.v_m_isk = zeros (length(0:step_beta:alpha), 3);
+output_data.r_m_gsk = zeros (N, 3);
+output_data.r_m_isk = zeros (N, 3);
+output_data.v_m_gsk = zeros (N, 3);
+output_data.v_m_isk = zeros (N, 3);
 
-% Матрица поворота с учётом углового шага
-A = (eye(3) * cos(step_beta)) + ((1 - cos(step_beta))*(e_c * e_c')) - (C * sin(step_beta));
 
 % Перевод начальной и конечной точки в ИСК
 initial_data.e0_isk =[+cos(const_values.W_earth * 0), -sin(const_values.W_earth * 0), 0;
@@ -109,38 +109,30 @@ initial_data.e1_isk =[+cos(const_values.W_earth * T), -sin(const_values.W_earth 
                       0, 0, 1] * initial_data.e1;
 
 %% main cycle
-
-% % Матрица пересчёта ГИСК -> ИСК
-% M_IE = [+cos(const_values.W_earth * dt), -sin(const_values.W_earth * dt), 0;
-%         +sin(const_values.W_earth * dt), +cos(const_values.W_earth * dt), 0;
-%         0, 0, 1];
-
-
 for count = 1:length(output_data.r_m_gsk)
 
-    if (count == 1)
-        output_data.r_m_gsk(count, :) =  initial_data.e0';
-        output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
-                                         +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
-                                         0, 0, 1] * output_data.r_m_gsk(count, :)';
+    % Матрица поворота с учётом углового шага
+    A = (eye(3) * cos(beta(count))) + ((1 - cos(beta(count)))*(e_c * e_c')) - (C * sin(beta(count)));
 
-        % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
-        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
-        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
-    else
-        output_data.r_m_gsk(count, :) = A' * output_data.r_m_gsk(count-1, :)';
-        output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
-                                         +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
-                                         0, 0, 1] * output_data.r_m_gsk(count, :)';
+    output_data.r_m_gsk(count, :) = A' * initial_data.e0;
 
-        % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
-        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
-        % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
-    end
+    g = const_values.W_earth * dt(count);
+    output_data.r_m_isk(count, :) = [+cos(g), -sin(g), 0;
+                                     +sin(g), +cos(g), 0;
+                                     0,        0,      1] * output_data.r_m_gsk(count, :)';
 
+    % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
+    % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
+    % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
 end
 
-
+% Контроль: дошли ли до конечной точки 
+% порог шага дуги (W/Hz) - полтора шага
+err_end = norm(output_data.r_m_gsk(end, :)' - initial_data.e1);
+fprintf("[INFO] == Невязка конечной точки: %.6f m\n", err_end);
+if err_end > (1.5 * initial_data.W / initial_data.Hz)
+    warning("Траектория не сошлась в конечную точку!");
+end
 
 
 
