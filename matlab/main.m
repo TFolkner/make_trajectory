@@ -11,9 +11,11 @@ fprintf ("==================================\n");
 try
     % Инит данные для моделирования
     initial_data = struct;   % Структура начальных условий
+    
     initial_data.m0 = [55.7558, 37.6173]; % МСК
     % initial_data.m1 = [51.1, 0.12];% Лондон
     initial_data.m1 = [13.7563, 100.5018]; % Бангкок
+
     initial_data.W = 250; % Модуль вектора путевой скорости [м/с ]
     initial_data.t = 60 * 60; % Время в движении [sec]
     initial_data.h = 1000000; % высота движения
@@ -27,7 +29,7 @@ try
     
     MACROS = struct;
     MACROS.plot = 1;
-    MACROS.save_grafs = 1;
+    MACROS.save_grafs = 0;
 
     fprintf ("[INFO] == data initial success\n");
 catch exception
@@ -54,12 +56,11 @@ initial_data.e1 = ...
 
 
 % Угол поворота
-alpha = acos (dot(initial_data.e0, initial_data.e1) / ...
-    (norm(initial_data.e0) * norm(initial_data.e1)));
+alpha = atan2( norm(cross(initial_data.e0,initial_data.e1)), ...
+                        dot(initial_data.e0,initial_data.e1) );
 
 % вектор поворота
 e_c = cross(initial_data.e0, initial_data.e1); e_c = e_c / norm(e_c);
-e_c = e_c;
 
 % Длина маршрута:
 L = (const_values.R_earth + initial_data.h) * alpha;
@@ -81,9 +82,9 @@ C = [0,      -e_c(3),  e_c(2);
 step_beta = wc * (1 / initial_data.Hz);
 
 % Создаём итоговые массивы выходных данных
-output_data.r_m_gisk = zeros (length(0:step_beta:alpha), 3);
+output_data.r_m_gsk = zeros (length(0:step_beta:alpha), 3);
 output_data.r_m_isk = zeros (length(0:step_beta:alpha), 3);
-output_data.v_m_gisk = zeros (length(0:step_beta:alpha), 3);
+output_data.v_m_gsk = zeros (length(0:step_beta:alpha), 3);
 output_data.v_m_isk = zeros (length(0:step_beta:alpha), 3);
 
 % Матрица поворота с учётом углового шага
@@ -106,22 +107,22 @@ initial_data.e1_isk =[+cos(const_values.W_earth * T), -sin(const_values.W_earth 
 %         0, 0, 1];
 
 
-for count = 1:length(output_data.r_m_gisk)
+for count = 1:length(output_data.r_m_gsk)
 
     if (count == 1)
-        output_data.r_m_gisk(count, :) =  initial_data.e0';
+        output_data.r_m_gsk(count, :) =  initial_data.e0';
         output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
                                          +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
-                                         0, 0, 1] * output_data.r_m_gisk(count, :)';
+                                         0, 0, 1] * output_data.r_m_gsk(count, :)';
 
         % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) * initial_data.W;
     else
-        output_data.r_m_gisk(count, :) = A' * output_data.r_m_gisk(count-1, :)';
+        output_data.r_m_gsk(count, :) = A' * output_data.r_m_gsk(count-1, :)';
         output_data.r_m_isk(count, :) = [+cos(const_values.W_earth * dt(count)), -sin(const_values.W_earth * dt(count)), 0;
                                          +sin(const_values.W_earth * dt(count)), +cos(const_values.W_earth * dt(count)), 0;
-                                         0, 0, 1] * output_data.r_m_gisk(count, :)';
+                                         0, 0, 1] * output_data.r_m_gsk(count, :)';
 
         % output_data.v_m_gisk(count, :) = cross(e_c, output_data.r_m_gisk(count, :)); 
         % output_data.v_m_gisk(count, :) = output_data.v_m_gisk(count, :) / norm (output_data.v_m_gisk(count, :));
@@ -190,12 +191,12 @@ if (MACROS.plot == 1)
         %        '-*r', 'linewidth',LW);
         
         % Траектория движения ГИСК
-        plot3 (output_data.r_m_gisk(:, 1), ...
-               output_data.r_m_gisk(:, 2), ...
-               output_data.r_m_gisk(:, 3), ...
+        plot3 (output_data.r_m_gsk(:, 1), ...
+               output_data.r_m_gsk(:, 2), ...
+               output_data.r_m_gsk(:, 3), ...
                '-r', 'linewidth',LW);
         
-        title ('Траектория движения в ГИСК')
+        title ('Траектория движения в ГСК')
         legend ("E", "Мск", "Бангкок", "маршрут");
         
         subplot (1, 2, 2) % --------------------------------------------- ИСК
